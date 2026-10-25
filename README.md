@@ -100,11 +100,11 @@ Arrangøren ser to tall: **interesserte** (frem til dagen) og **bekreftede** (et
 **Inkludert i første versjon:**
 - Liste over arrangementer
 - Filter på kategori
-- "Jeg kommer"-knapp (interessemelding)
+- Konto med e-post og passord
+- "Jeg kommer"-knapp (interessemelding lagret på kontoen)
 
 **Utenfor MVP (kommer senere):**
 - Påminnelse på arrangementsdagen
-- Innlogging og brukerprofiler
 - Arrangørportal og publisering
 - Betaling
 - Kuponger og samarbeidspartnere
@@ -157,9 +157,45 @@ npm install
 npm run dev
 ```
 
-Prototypen bruker eksempelarrangementer som ligger i `src/App.jsx`. Interesser
-holdes foreløpig i React-tilstand og forsvinner når siden lastes inn på nytt;
-innlogging og lagring kobles til senere.
+Appen henter arrangementer og lagrer påmeldinger i Supabase. Sett opp prosjektet
+før du starter appen:
+
+1. Opprett et Supabase-prosjekt på [supabase.com](https://supabase.com/).
+2. Åpne **SQL Editor**, kjør `supabase/schema.sql`, og deretter
+   `supabase/seed.sql` for å legge inn testarrangementer.
+3. Kopier `.env.example` til `.env.local`. Finn **Project URL** og den offentlige
+   **anon/publishable key** under prosjektets API-innstillinger, og fyll dem inn:
+
+   ```env
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-public-key
+   ```
+
+4. Start appen på nytt med `npm run dev`. Opprett en konto med e-post og passord.
+   Hvis e-postbekreftelse er slått på i Supabase, må du bekrefte adressen før
+   innlogging. Under **Authentication → URL Configuration**, sett lokal
+   utviklingsadresse som **Site URL** og legg til Vercel-adressen under
+   **Redirect URLs** når du publiserer.
+5. Legg de samme to miljøvariablene inn i Vercel-prosjektets
+   **Environment Variables** for hvert miljø som skal bruke appen.
+
+`.env.local` skal ikke committes. `.env.example` er en mal uten ekte nøkler.
+Frontend bruker bare Supabase sin offentlige anon/publishable key; aldri legg
+`service_role`-nøkkelen i appen eller i GitHub.
+
+**Sikkerhet i MVP:** RLS er aktivert på `organizers`, `events` og `rsvps`.
+Alle kan lese arrangementer og arrangørnavn, men bare innloggede brukere kan
+lese sine egne RSVP-er. Databasen kontrollerer både eierskap og 14-dagersgrensen
+for nye interesser. Arrangører og arrangementer kan foreløpig bare administreres
+fra Supabase-dashboardet; offentlig skrivetilgang er ikke gitt.
+Klienten har bare kolonnerettigheter til å sette inn en RSVP og endre dens
+status, ikke til å endre bruker, arrangement eller bekreftelsestidspunkt.
+
+`User` i datamodellen håndteres av Supabase Auth (`auth.users`), ikke av en
+separat offentlig brukertabell. Tabell- og RLS-oppsettet ligger i
+[`supabase/schema.sql`](./supabase/schema.sql); testdataene i
+[`supabase/seed.sql`](./supabase/seed.sql) kan kjøres på nytt uten å lage
+duplikater.
 
 ## Forretningsmodell
 
@@ -169,8 +205,8 @@ innlogging og lagring kobles til senere.
 
 ## Veikart
 
-- [ ] **Fase 1 (MVP):** arrangementsliste, kategorifilter, "Jeg kommer"-knapp
-- [ ] **Fase 2:** innlogging, lagring av påmeldinger, påminnelse på arrangementsdagen
+- [ ] **Fase 1 (MVP):** arrangementsliste, kategorifilter, innlogging, lagring av påmeldinger
+- [ ] **Fase 2:** påminnelse og bekreftelse på arrangementsdagen
 - [ ] **Fase 3:** arrangørportal og publisering
 - [ ] **Fase 4:** betaling
 - [ ] **Fase 5:** kuponger og samarbeidspartnere
@@ -201,6 +237,7 @@ Denne delen er skrevet for AI-verktøy som hjelper til med kode og planlegging.
 - Foretrekk lesbar kode med korte forklaringer fremfor avanserte mønstre.
 - Bruk React med funksjonelle komponenter og hooks.
 - Hold forretningsreglene (14-dagersgrensen, påminnelse på dagen) i bakhodet når du foreslår datamodeller og logikk.
+- Supabase skal bruke RLS. RSVP-er er private for den innloggede brukeren; publisering av arrangementer er foreløpig bare administratorstyrt.
 - Svar på norsk, med mindre jeg skriver på engelsk. Kode, variabelnavn og commit-meldinger skrives på engelsk.
 
 **Viktigste begreper i koden:** `Event`, `Organizer`, `Rsvp`, `status` (`interested` / `confirmed` / `cancelled`).
